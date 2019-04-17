@@ -9,9 +9,11 @@ import argparse
 import netifaces
 import ipscanner
 
-ips = []
-ipStats = dict()
-lock = threading.Lock()
+
+class Static:
+    ips = []
+    ipStats = dict()
+    lock = threading.Lock()
 
 
 class Scanner:
@@ -34,29 +36,28 @@ class Scanner:
             result += ipscanner.FastportscanScanner(self.ip, None).scan()
 
         if result:
-            ipStats[self.ip] = 'On'
+            Static.ipStats[self.ip] = 'On'
         else:
-            ipStats[self.ip] = 'Off'
+            Static.ipStats[self.ip] = 'Off'
 
 
-class myThread(threading.Thread):
-    def __init__(self, threadID, name, interface, methods):
+class MyThread(threading.Thread):
+    def __init__(self, thread_id, name, interface, methods):
         threading.Thread.__init__(self)
-        self.threadID = threadID
+        self.threadID = thread_id
         self.name = name
         self.interface = interface
         self.methods = methods
         self.kill_received = False
 
     def run(self):
-        while ips and not self.kill_received:
-            lock.acquire()
-            if len(ips) > 0:
-                ip = str(ips[0])
-                del ips[0]
-                lock.release()
+        while Static.ips and not self.kill_received:
+            Static.lock.acquire()
+            if len(Static.ips) > 0:
+                ip = str(Static.ips[0])
+                del Static.ips[0]
+                Static.lock.release()
                 Scanner(ip, self.interface, self.methods)
-
 
 
 class ProgressBar:
@@ -66,26 +67,26 @@ class ProgressBar:
         self.length = length
 
     def print(self,proggress):
-        x = self.getNumberOfSymbols(proggress)
-        proc = self.getPercentage(proggress)
+        x = self._get_number_of_symbols(proggress)
+        proc = self._get_percentage(proggress)
 
         sys.stdout.write('{:4d}/{:4s} |{:{width}}| {:3d}%\r'.format(proggress,
-                                                                      str(self.maxitems),
-                                                                      (self.symbol * x),
-                                                                      proc,
-                                                                      width=self.length))
+                                                                    str(self.maxitems),
+                                                                    self.symbol * x,
+                                                                    proc,
+                                                                    width=self.length))
 
         if proggress == self.maxitems:
             sys.stdout.write("\033[K")
 
-    def getNumberOfSymbols(self, proggress):
-        return math.floor((self.length * proggress) / self.maxitems)
+    def _get_number_of_symbols(self, progress):
+        return math.floor((self.length * progress) / self.maxitems)
 
-    def getPercentage(self, proggress):
-        return math.floor((proggress * 100) / self.maxitems)
+    def _get_percentage(self, progress):
+        return math.floor((progress * 100) / self.maxitems)
 
 
-class AnaylyzePool:
+class AnalyzePool:
     def __init__(self, threads=5, silentmode=False):
         self.threads = threads
         self.silentmode = silentmode
@@ -95,77 +96,74 @@ class AnaylyzePool:
         self.off = 0
         self.scanned = False
         self.destination = ''
-        self.outputFileName = False
-        self.outputFile = ''
+        self.outputfilename = False
+        self.outputfile = ''
         self.methods = []
 
     def __del__(self):
-        self.outputFile.close()
+        self.outputfile.close()
 
-    def setOutputFile(self, filename):
-        self.outputFileName = filename
-        self.outputFile = open(self.outputFileName, "w")
+    def set_outputfile(self, filename):
+        self.outputfilename = filename
+        self.outputfile = open(self.outputfilename, "w")
 
-    def setMethods(self, methods):
+    def set_methods(self, methods):
         if methods:
             self.methods = methods[0]
 
-    def generateIPs(self, network):
-        global ips
-        ips = list(ipaddress.ip_network(network).hosts())
+    def generate_ips(self, network):
+        Static.ips = list(ipaddress.ip_network(network).hosts())
 
-    def analyze(self, ipStats):
+    def analyze(self):
         on = 0
         off = 0
-        for key, val in ipStats.items():
+        for key, val in Static.ipStats.items():
             if val == "On":
                 on += 1
             else:
                 off += 1
         return on, off
 
-    def setNetwork(self, network):
+    def set_network(self, network):
         self.destination = str(network)
-        self.generateIPs(network)
+        self.generate_ips(network)
 
-    def setIp(self, ip):
+    def set_ip(self, ip):
         self.destination = str(ip)
-        global ips
-        ips.append(ip)
+        Static.ips.append(ip)
 
-    def setInterface(self, interface):
+    def set_interface(self, interface):
         self.interface = interface
 
     def _printSummary(self):
         if not self.silentmode:
             print('{:15s} ==> online={:d} offline={:d}'.format(str(self.destination),
-                                                           self.on,
-                                                           self.off))
+                                                               self.on,
+                                                               self.off))
 
-    def writeToFile(self, ipStats):
-        if self.outputFileName:
+    def write_to_file(self):
+        if self.outputfilename:
             helper = lambda val: 1 if val == 'On' else 0
-            for key, val in ipStats.items():
-                self.outputFile.write('{:s};{:d}\n'.format(key, helper(val)))
+            for key, val in Static.Stats.items():
+                self.outputfile.write('{:s};{:d}\n'.format(key, helper(val)))
 
     def check(self):
-        global ipStats
-        ipStats = {}
+        Static.ipStats = {}
         self.pool = []
-        ipsSize = len(ips)
+        ips_size = len(Static.ips)
 
         for i in range(self.threads):
-            t = myThread(i, "thread-" + str(i), self.interface, self.methods)
+            t = MyThread(i, "thread-" + str(i), self.interface, self.methods)
             t.start()
 
             self.pool.append(t)
 
         if not self.silentmode:
-            pb = ProgressBar(maxitems=ipsSize, length=80)
+            pb = ProgressBar(maxitems=ips_size, length=80)
 
         try:
-            while ips and not self.silentmode:
-                pb.print(ipsSize-len(ips))
+            while Static.ips and not self.silentmode:
+                pb.print(ips_size-len(Static.ips))
         except KeyboardInterrupt:
             for t in self.pool:
                 t.kill_received = True
@@ -175,17 +173,16 @@ class AnaylyzePool:
             t.join()
         else:
             if not self.silentmode:
-                pb.print(ipsSize - len(ips))
+                pb.print(ips_size - len(Static.ips))
 
-        self.on, self.off = self.analyze(ipStats)
+        self.on, self.off = self.analyze()
 
         self._printSummary()
-        self.writeToFile(ipStats)
-        return self.on, self.off, ipStats, self.destination
+        self.write_to_file()
+        return self.on, self.off, Static.ipStats, self.destination
 
 
 def main():
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--network', action="append", dest="network", help="Network to scan (format IP/MASK)", default=[])
     parser.add_argument('-m', '--methods', action="append", dest="methods", nargs='+', choices=['ping', 'arping', 'portscan', 'fastportscan'], help="type of scan")
@@ -197,17 +194,15 @@ def main():
     parser.set_defaults(silence=False)
     args = parser.parse_args()
 
-    # argdict = vars(args)
-
-    analyze = AnaylyzePool(threads=args.threads, silentmode=args.silent_mode)
-    analyze.setMethods(args.methods)
-    analyze.setOutputFile(args.output)
+    analyze = AnalyzePool(threads=args.threads, silentmode=args.silent_mode)
+    analyze.set_methods(args.methods)
+    analyze.set_outputfile(args.output)
 
     if not args.iface:
         interface = netifaces.gateways()['default'][netifaces.AF_INET][1]
-        analyze.setInterface(interface)
+        analyze.set_interface(interface)
     elif args.iface in netifaces.interfaces():
-        analyze.setInterface(args.iface)
+        analyze.set_interface(args.iface)
     else:
         try:
             raise ValueError
@@ -217,14 +212,14 @@ def main():
 
     for net in args.network:
         try:
-            analyze.setNetwork(ipaddress.IPv4Network(net, strict=False))
+            analyze.set_network(ipaddress.IPv4Network(net, strict=False))
             analyze.check()
         except ipaddress.AddressValueError:
             print("Invalid network address")
 
     for ip in args.ip:
         try:
-            analyze.setIp(ipaddress.IPv4Address(ip))
+            analyze.set_ip(ipaddress.IPv4Address(ip))
             analyze.check()
         except ipaddress.AddressValueError:
             print("Invalid IP address")
