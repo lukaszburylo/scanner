@@ -183,16 +183,37 @@ class AnalyzePool:
 
 
 def main():
+    def check_ips(ips):
+        for ip in ips:
+            ipaddress.IPv4Address(ip)
+
+    def check_networks(networks):
+        for network in networks:
+            ipaddress.IPv4Network(network)
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--network', action="append", dest="network", help="Network to scan (format IP/MASK)", default=[])
-    parser.add_argument('-m', '--methods', action="append", dest="methods", nargs='+', choices=['ping', 'arping', 'portscan', 'fastportscan'], help="type of scan")
-    parser.add_argument('-i', '--ip', action="append", dest="ip", help="IP to scan", default=[])
+    parser.add_argument('-n', '--network',
+                        action="append",
+                        dest="network",
+                        help="Network to scan (format IP/MASK)",
+                        default=[])
+    parser.add_argument('-m', '--methods', action="append", dest="methods", nargs='+',
+                        choices=['ping', 'arping', 'portscan', 'fastportscan'],
+                        help="type of scan")
+    parser.add_argument('-i', '--ip',
+                        action="append",
+                        dest="ip",
+                        help="IP to scan",
+                        default=[])
     parser.add_argument('-I', '--interface', dest='iface', help='interface using to scan')
     parser.add_argument('-t', dest='threads', type=int, default=80, help="number of threads")
     parser.add_argument('-o', '--output', dest='output', help='output file', default=False)
     parser.add_argument('-s', dest='silent_mode', action='store_true', help='Silent mode', default=False)
     parser.set_defaults(silence=False)
     args = parser.parse_args()
+
+    check_ips(args.ip)
+    check_networks(args.network)
 
     analyze = AnalyzePool(threads=args.threads, silentmode=args.silent_mode)
     analyze.set_methods(args.methods)
@@ -204,31 +225,29 @@ def main():
     elif args.iface in netifaces.interfaces():
         analyze.set_interface(args.iface)
     else:
-        try:
-            raise ValueError
-        except ValueError:
-            print("Unexisting interface")
-            sys.exit(1)
+        raise ValueError("Unexisting interface")
 
     for net in args.network:
-        try:
-            analyze.set_network(ipaddress.IPv4Network(net, strict=False))
-            analyze.check()
-        except ipaddress.AddressValueError:
-            print("Invalid network address")
+        analyze.set_network(ipaddress.IPv4Network(net, strict=False))
+        analyze.check()
 
     for ip in args.ip:
-        try:
-            analyze.set_ip(ipaddress.IPv4Address(ip))
-            analyze.check()
-        except ipaddress.AddressValueError:
-            print("Invalid IP address")
+        analyze.set_ip(ipaddress.IPv4Address(ip))
+        analyze.check()
 
 
 if __name__ == '__main__':
     try:
         main()
+    except ipaddress.AddressValueError as e:
+        print(e.__str__())
+    except ipaddress.NetmaskValueError as e:
+        print(e.__str__())
+    except ValueError as e:
+        print(e)
     except KeyboardInterrupt:
         sys.exit(0)
+    except Exception as e:
+        print(e.__str__())
 
 
