@@ -144,7 +144,7 @@ class AnalyzePool:
     def write_to_file(self):
         if self.outputfilename:
             helper = lambda val: 1 if val == 'On' else 0
-            for key, val in Static.Stats.items():
+            for key, val in Static.ipStats.items():
                 self.outputfile.write('{:s};{:d}\n'.format(key, helper(val)))
 
     def check(self):
