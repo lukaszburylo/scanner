@@ -110,6 +110,8 @@ class AnalyzePool:
     def set_methods(self, methods):
         if methods:
             self.methods = methods[0]
+        else:
+            self.methods = ['ping']
 
     def generate_ips(self, network):
         Static.ips = list(ipaddress.ip_network(network).hosts())
