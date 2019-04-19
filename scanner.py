@@ -87,18 +87,19 @@ class ProgressBar:
 
 
 class AnalyzePool:
+    pool = []
+    interface = ''
+    on = 0
+    off = 0
+    scanned = False
+    destination = ''
+    outputfilename = False
+    outputfile = ''
+    methods = []
+
     def __init__(self, threads=5, silentmode=False):
         self.threads = threads
         self.silentmode = silentmode
-        self.pool = []
-        self.interface = ''
-        self.on = 0
-        self.off = 0
-        self.scanned = False
-        self.destination = ''
-        self.outputfilename = False
-        self.outputfile = ''
-        self.methods = []
 
     def __del__(self):
         self.outputfile.close()
@@ -154,11 +155,7 @@ class AnalyzePool:
         self.pool = []
         ips_size = len(Static.ips)
 
-        for i in range(self.threads):
-            t = MyThread(i, "thread-" + str(i), self.interface, self.methods)
-            t.start()
-
-            self.pool.append(t)
+        self._start_threads()
 
         if not self.silentmode:
             pb = ProgressBar(maxitems=ips_size, length=80)
@@ -183,8 +180,15 @@ class AnalyzePool:
         self.write_to_file()
         return self.on, self.off, Static.ipStats, self.destination
 
+    def _start_threads(self):
+        for i in range(self.threads):
+            t = MyThread(i, "thread-" + str(i), self.interface, self.methods)
+            t.start()
+            self.pool.append(t)
+
 
 def main():
+    # only for check values
     def check_ips(ips):
         for ip in ips:
             ipaddress.IPv4Address(ip)
