@@ -1,14 +1,13 @@
 #!/usr/bin/python3
 
 import threading
-import subprocess
 import sys
 import math
 import ipaddress
 import argparse
 import netifaces
 import ipscanner
-
+import io as _io
 
 class Static:
     ips = []
@@ -102,7 +101,8 @@ class AnalyzePool:
         self.silentmode = silentmode
 
     def __del__(self):
-        self.outputfile.close()
+        if isinstance(self.outputfile, _io.TextIOWrapper):
+            self.outputfile.close()
 
     def set_outputfile(self, filename):
         self.outputfilename = filename
@@ -147,8 +147,12 @@ class AnalyzePool:
     def write_to_file(self):
         if self.outputfilename:
             helper = lambda val: 1 if val == 'On' else 0
-            for key, val in Static.Stats.items():
+            # json.dump(Static.ipStats, self.outputfile)
+            for key, val in Static.ipStats.items():
                 self.outputfile.write('{:s};{:d}\n'.format(key, helper(val)))
+            return True
+        else:
+            return False
 
     def check(self):
         Static.ipStats = {}
@@ -175,7 +179,6 @@ class AnalyzePool:
                 pb.print(ips_size - len(Static.ips))
 
         self.on, self.off = self.analyze()
-
         self._printSummary()
         self.write_to_file()
         return self.on, self.off, Static.ipStats, self.destination
