@@ -3,7 +3,7 @@ import socket
 
 
 class AbstractScanner:
-    def __init__(self, ip, interface):
+    def __init__(self, ip: str, interface: str):
         self.ip = ip
         self.interface = interface
 

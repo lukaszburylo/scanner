@@ -1,14 +1,13 @@
 #!/usr/bin/python3
 
 import threading
-import subprocess
 import sys
 import math
 import ipaddress
 import argparse
 import netifaces
 import ipscanner
-
+import io as _io
 
 class Static:
     ips = []
@@ -101,7 +100,8 @@ class AnalyzePool:
         self.methods = []
 
     def __del__(self):
-        self.outputfile.close()
+        if isinstance(self.outputfile, _io.TextIOWrapper):
+            self.outputfile.close()
 
     def set_outputfile(self, filename):
         self.outputfilename = filename
@@ -110,6 +110,8 @@ class AnalyzePool:
     def set_methods(self, methods):
         if methods:
             self.methods = methods[0]
+        else:
+            self.methods = ['ping']
 
     def generate_ips(self, network):
         Static.ips = list(ipaddress.ip_network(network).hosts())
@@ -144,19 +146,19 @@ class AnalyzePool:
     def write_to_file(self):
         if self.outputfilename:
             helper = lambda val: 1 if val == 'On' else 0
+            # json.dump(Static.ipStats, self.outputfile)
             for key, val in Static.ipStats.items():
                 self.outputfile.write('{:s};{:d}\n'.format(key, helper(val)))
+            return True
+        else:
+            return False
 
     def check(self):
         Static.ipStats = {}
         self.pool = []
         ips_size = len(Static.ips)
 
-        for i in range(self.threads):
-            t = MyThread(i, "thread-" + str(i), self.interface, self.methods)
-            t.start()
-
-            self.pool.append(t)
+        self._start_threads()
 
         if not self.silentmode:
             pb = ProgressBar(maxitems=ips_size, length=80)
@@ -176,10 +178,15 @@ class AnalyzePool:
                 pb.print(ips_size - len(Static.ips))
 
         self.on, self.off = self.analyze()
-
         self._printSummary()
         self.write_to_file()
         return self.on, self.off, Static.ipStats, self.destination
+
+    def _start_threads(self):
+        for i in range(self.threads):
+            t = MyThread(i, "thread-" + str(i), self.interface, self.methods)
+            t.start()
+            self.pool.append(t)
 
 
 def main():
