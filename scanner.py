@@ -86,18 +86,19 @@ class ProgressBar:
 
 
 class AnalyzePool:
+    pool = []
+    interface = ''
+    on = 0
+    off = 0
+    scanned = False
+    destination = ''
+    outputfilename = False
+    outputfile = ''
+    methods = []
+
     def __init__(self, threads=5, silentmode=False):
         self.threads = threads
         self.silentmode = silentmode
-        self.pool = []
-        self.interface = ''
-        self.on = 0
-        self.off = 0
-        self.scanned = False
-        self.destination = ''
-        self.outputfilename = False
-        self.outputfile = ''
-        self.methods = []
 
     def __del__(self):
         if isinstance(self.outputfile, _io.TextIOWrapper):
@@ -190,6 +191,7 @@ class AnalyzePool:
 
 
 def main():
+    # only for check values
     def check_ips(ips):
         for ip in ips:
             ipaddress.IPv4Address(ip)
@@ -256,5 +258,3 @@ if __name__ == '__main__':
         sys.exit(0)
     except Exception as e:
         print(e.__str__())
-
-
