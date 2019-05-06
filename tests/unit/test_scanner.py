@@ -40,7 +40,7 @@ class ScannerCase(unittest.TestCase):
     def test_empty_methods(self):
         self.analyze_pool.set_methods([])
         self.assertEqual(['ping'], self.analyze_pool.methods)
-        
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,10 +10,26 @@ class AbstractScanner:
     def scan(self):
         pass
 
+    @classmethod
+    def alias(cls):
+        pass
+
+    @staticmethod
+    def available_methods():
+        subclassess = __class__.__subclasses__()
+        rv = []
+        for sc in subclassess:
+            rv.append(sc.alias())
+        return rv
+
 
 class PingScanner(AbstractScanner):
     def __init__(self, ip, interface):
         super().__init__(ip, interface)
+
+    @classmethod
+    def alias(cls):
+        return 'ping'
 
     def scan(self):
         try:
@@ -28,6 +44,10 @@ class ArpingScanner(AbstractScanner):
     def __init__(self, ip, interface):
         super().__init__(ip, interface)
 
+    @classmethod
+    def alias(cls):
+        return 'arping'
+
     def scan(self):
         try:
             subprocess.check_output(["arping", "-c", "1", "-w", "1", "-I", self.interface, self.ip],
@@ -40,6 +60,10 @@ class ArpingScanner(AbstractScanner):
 class PortscanScanner(AbstractScanner):
     def __init__(self, ip, interface):
         super().__init__(ip, interface)
+
+    @classmethod
+    def alias(cls):
+        return 'portscan'
 
     def scan(self):
         for port in range(1, 10000):
@@ -56,6 +80,10 @@ class PortscanScanner(AbstractScanner):
 class FastportscanScanner(AbstractScanner):
     def __init__(self, ip, interface):
         super().__init__(ip, interface)
+
+    @classmethod
+    def alias(cls):
+        return 'fastportscan'
 
     def scan(self):
         for port in [21, 22, 25, 80, 110, 113, 902, 3306, 8080]:
