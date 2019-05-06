@@ -65,23 +65,33 @@ class ProgressBar:
         self.maxitems = maxitems
         self.length = length
 
-    def print(self,proggress):
-        x = self._get_number_of_symbols(proggress)
-        proc = self._get_percentage(proggress)
+    def print(self,progress):
+        self._test_progress(progress)
 
-        sys.stdout.write('{:4d}/{:4s} |{:{width}}| {:3d}%\r'.format(proggress,
+        x = self._get_number_of_symbols(progress)
+        proc = self._get_percentage(progress)
+
+        sys.stdout.write('{:4d}/{:4s} |{:{width}}| {:3d}%\r'.format(progress,
                                                                     str(self.maxitems),
                                                                     self.symbol * x,
                                                                     proc,
                                                                     width=self.length))
 
-        if proggress == self.maxitems:
+        if progress == self.maxitems:
             sys.stdout.write("\033[K")
 
+    def _test_progress(self, progress):
+        if not (isinstance(progress, float) | isinstance(progress, int)):
+            raise ValueError("progress must be a float or int")
+        if progress > self.maxitems:
+            raise ValueError("progress can't be grater than maxitems")
+
     def _get_number_of_symbols(self, progress):
+        self._test_progress(progress)
         return math.floor((self.length * progress) / self.maxitems)
 
     def _get_percentage(self, progress):
+        self._test_progress(progress)
         return math.floor((progress * 100) / self.maxitems)
 
 
@@ -114,7 +124,7 @@ class AnalyzePool:
         else:
             self.methods = ['ping']
 
-    def generate_ips(self, network):
+    def generate_ips(self, network: str) -> None:
         Static.ips = list(ipaddress.ip_network(network).hosts())
 
     def analyze(self):
@@ -132,10 +142,10 @@ class AnalyzePool:
         self.generate_ips(network)
 
     def set_ip(self, ip):
-        self.destination = str(ip)
+        self.destination = str(ipaddress.IPv4Address(ip))
         Static.ips.append(ip)
 
-    def set_interface(self, interface):
+    def set_interface(self, interface: str):
         self.interface = interface
 
     def _printSummary(self):
