@@ -86,7 +86,7 @@ class FastportscanScanner(AbstractScanner):
         return 'fastportscan'
 
     def scan(self):
-        for port in [21, 22, 25, 80, 110, 113, 902, 3306, 8080]:
+        for port in [21, 22, 25, 80, 110, 113, 161, 902, 3306, 8080]:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(0.0001)
             result = sock.connect_ex((self.ip, port))
